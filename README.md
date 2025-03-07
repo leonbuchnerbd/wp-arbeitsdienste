@@ -76,34 +76,6 @@ Falls du das Plugin **dauerhaft entfernen** möchtest:
 
 ---
 
-## 📁 Dateistruktur
-arbeitsdienste-plugin/ 
-│── arbeitsdienste-plugin.php # Hauptdatei des Plugins 
-│── admin/ 
-│ 
-├── arbeitsdienste-admin.php # Admin-Seite zur Verwaltung 
-│ 
-├── arbeitsdienste-meta.php # Zusätzliche Felder für Arbeitsdienste 
-│── public/ 
-│ 
-├── arbeitsdienste-shortcode.php # Shortcode für die Kachel-Darstellung 
-│── includes/ 
-│ 
-├── arbeitsdienste-cpt.php # Custom Post Type Registrierung 
-│── assets/ 
-│ 
-├── css/ 
-│ 
-│ 
-├── admin-style.css # Admin-CSS 
-│
-│ 
-├── public-style.css # Frontend-CSS 
-│── uninstall.php # Entfernt alle Daten bei Deinstallation 
-│── README.md # Dokumentation
-
----
-
 ## 🔧 Erweiterungsmöglichkeiten
 💡 **Das Plugin kann erweitert werden mit:**  
 - 🔹 **Filter- und Suchfunktion** für die Arbeitsdienst-Liste  
