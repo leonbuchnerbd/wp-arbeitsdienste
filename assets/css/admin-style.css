@@ -40,3 +40,79 @@
         flex: 1 1 100%;
     }
 }
+
+
+/* Stil für das Admin-Table-Layout */
+.arbeitsdienste-table-wrapper {
+    overflow-x: auto; /* Falls Tabelle zu groß ist, horizontal scrollen */
+    max-width: 100%;
+    margin-top: 20px;
+}
+
+/* Tabelle normal anzeigen */
+.arbeitsdienste-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.arbeitsdienste-table th, 
+.arbeitsdienste-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.arbeitsdienste-table th {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Buttons für Aktionen */
+.arbeitsdienste-table .button {
+    padding: 5px 10px;
+    text-align: center;
+    font-size: 14px;
+    border-radius: 4px;
+    margin-right: 5px;
+}
+
+/* Tabellenzeilen hervorheben */
+.arbeitsdienste-table tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Mobile Ansicht */
+@media (max-width: 768px) {
+    .arbeitsdienste-table thead {
+        display: none; /* Kopfzeilen ausblenden */
+    }
+
+    .arbeitsdienste-table tbody tr {
+        display: block;
+        border-bottom: 2px solid #ddd;
+        margin-bottom: 10px;
+        padding: 10px;
+    }
+
+    .arbeitsdienste-table td {
+        display: block;
+        text-align: right;
+        padding: 10px;
+        border-bottom: none;
+        position: relative;
+    }
+
+    .arbeitsdienste-table td:before {
+        content: attr(data-label);
+        font-weight: bold;
+        text-transform: uppercase;
+        position: absolute;
+        left: 10px;
+        text-align: left;
+        color: #007bff;
+    }
+}
