@@ -67,7 +67,7 @@
 }
 
 .arbeitsdienste-table th {
-    background-color: #007bff;
+    background-color: #1d2327;
     color: white;
 }
 
@@ -113,6 +113,6 @@
         position: absolute;
         left: 10px;
         text-align: left;
-        color: #007bff;
+        color: #000000;
     }
 }

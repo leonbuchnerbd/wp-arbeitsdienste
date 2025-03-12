@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Arbeitsdienste
  * Description: Erstellt einen Custom Post Type für Arbeitsdienste und zeigt diese als Kacheln auf der Website an.
- * Version: 1.6
+ * Version: 1.7
  * Author: Leon Buchner
  */
 

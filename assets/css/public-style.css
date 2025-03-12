@@ -43,7 +43,7 @@
     display: block;
     text-align: center;
     padding: 10px;
-    background-color: #007bff;
+    background-color: #9f3e3e;
     color: white;
     border-radius: 5px;
     text-decoration: none;
@@ -53,7 +53,7 @@
 }
 
 .arbeitsdienst-button:hover {
-    background-color: #0056b3;
+    background-color: #6c2a2a;
 }
 
 @media (max-width: 768px) { /* Für Mobile */
