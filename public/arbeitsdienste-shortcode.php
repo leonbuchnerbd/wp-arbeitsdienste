@@ -43,10 +43,10 @@ function arbeitsdienste_shortcode() {
         // Arbeitsdienst-Kachel
         $html .= '<div class="arbeitsdienst-kachel">';
         $html .= '<a href="' . esc_url($arbeitsdienst_link) . '" class="arbeitsdienst-link">';
-        $html .= '<h2>' . esc_html($title) . '</h2>';
-        $html .= '<p><strong>Datum:</strong> ' . esc_html($datum) . '</p>';
-        $html .= '<p><strong>Uhrzeit:</strong> ' . esc_html($uhrzeit) . ' Uhr</p>';
-        $html .= '<p><strong>Benötigte Helfer:</strong> ' . esc_html($benoetigte_helfer) . '</p>';
+        $html .= '<h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800">' . esc_html($title) . '</h2>';
+        $html .= '<p class="text-lg sm:text-xl md:text-2xl text-gray-700"><strong>Datum:</strong> ' . esc_html($datum) . '</p>';
+        $html .= '<p class="text-lg sm:text-xl md:text-2xl text-gray-700"><strong>Uhrzeit:</strong> ' . esc_html($uhrzeit) . ' Uhr</p>';
+        $html .= '<p class="text-lg sm:text-xl md:text-2xl text-gray-700"><strong>Benötigte Helfer:</strong> ' . esc_html($benoetigte_helfer) . '</p>';        
         $html .= '</a>';
         
         // "Ich helfe gern"-Button

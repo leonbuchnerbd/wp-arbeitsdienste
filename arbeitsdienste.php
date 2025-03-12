@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Arbeitsdienste
  * Description: Erstellt einen Custom Post Type für Arbeitsdienste und zeigt diese als Kacheln auf der Website an.
- * Version: 1.4
+ * Version: 1.6
  * Author: Leon Buchner
  */
 
@@ -30,3 +30,8 @@ function arbeitsdienste_enqueue_styles() {
 }
 add_action('admin_enqueue_scripts', 'arbeitsdienste_enqueue_styles');
 add_action('wp_enqueue_scripts', 'arbeitsdienste_enqueue_styles');
+
+function enqueue_tailwind() {
+    wp_enqueue_style('tailwindcss', 'https://cdn.jsdelivr.net/npm/tailwindcss@3.3.0/dist/tailwind.min.css');
+}
+add_action('wp_enqueue_scripts', 'enqueue_tailwind');
