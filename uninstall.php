@@ -15,6 +15,8 @@ foreach ($arbeitsdienste as $dienst) {
     wp_delete_post($dienst->ID, true); // true = endgültig löschen (kein Papierkorb)
 }
 
+delete_option('arbeitsdienste_mailto_email');
+
 // 2️⃣ Alle Meta-Daten der Arbeitsdienste entfernen
 global $wpdb;
 $wpdb->query("DELETE FROM wp_postmeta WHERE post_id NOT IN (SELECT ID FROM wp_posts)");

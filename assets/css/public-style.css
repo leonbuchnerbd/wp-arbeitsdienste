@@ -1,0 +1,56 @@
+.arbeitsdienste-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+}
+
+.arbeitsdienst-kachel {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.arbeitsdienst-kachel:hover {
+    transform: scale(1.05);
+    box-shadow: 4px 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+.arbeitsdienst-link {
+    text-decoration: none;
+    color: #333;
+    display: block;
+}
+
+.arbeitsdienst-kachel h2 {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.arbeitsdienst-kachel p {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.arbeitsdienst-button {
+    display: block;
+    text-align: center;
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    margin-top: 10px;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.arbeitsdienst-button:hover {
+    background-color: #0056b3;
+}

@@ -12,25 +12,52 @@ function arbeitsdienste_shortcode() {
         return "<p class='text-center text-gray-500'>Keine Arbeitsdienste gefunden.</p>";
     }
 
-    $html = '<div class="container">';
+    $mailto_email = get_option('arbeitsdienste_mailto_email', 'ichhelfegern@narrenzunft-badduerrheim.de'); // Standard-Wert setzen
+
+    // Responsives Grid-Container
+    $html = '<div class="arbeitsdienste-container">';
+    
     while ($query->have_posts()) {
         $query->the_post();
-        $arbeitskreis = get_post_meta(get_the_ID(), 'arbeitskreis', true);
-        $datum = get_post_meta(get_the_ID(), 'datum', true);
-        $verantwortlicher = get_post_meta(get_the_ID(), 'verantwortlicher', true);
-        $benoetigte_helfer = get_post_meta(get_the_ID(), 'benoetigte_helfer', true);
+        $post_id = get_the_ID();
+        $title = get_the_title();
+        $description = get_the_excerpt();
+        $datum = get_post_meta($post_id, 'datum', true);
+        $uhrzeit = get_post_meta($post_id, 'uhrzeit', true);
+        $benoetigte_helfer = get_post_meta($post_id, 'benoetigte_helfer', true);
+        $arbeitsdienst_link = get_permalink($post_id); // Link zur Arbeitsdienst-Detailseite
 
+        // `mailto` E-Mail-Vorlage mit allen Arbeitsdienst-Infos
+        $email_subject = rawurlencode("Anmeldung für Arbeitsdienst: $title");
+        $email_body = rawurlencode(
+            "Hallo,\n\nIch möchte mich für den folgenden Arbeitsdienst anmelden:\n\n" .
+            "ID: $post_id\n" .
+            "Name: $title\n" .
+            "Datum: $datum\n" .
+            "Uhrzeit: $uhrzeit Uhr\n\n" .
+            "Bitte bestätigt meine Anmeldung.\n\nVielen Dank!\n\nMein Name"
+        );
+
+        $mailto_link = "mailto:$mailto_email?subject=$email_subject&body=$email_body";
+
+        // Arbeitsdienst-Kachel
         $html .= '<div class="arbeitsdienst-kachel">';
-        $html .= '<h2>' . get_the_title() . '</h2>';
+        $html .= '<a href="' . esc_url($arbeitsdienst_link) . '" class="arbeitsdienst-link">';
+        $html .= '<h2>' . esc_html($title) . '</h2>';
         $html .= '<p><strong>Datum:</strong> ' . esc_html($datum) . '</p>';
-        $html .= '<p><strong>Arbeitskreis:</strong> ' . esc_html($arbeitskreis) . '</p>';
-        $html .= '<p><strong>Hauptverantwortlicher:</strong> ' . esc_html($verantwortlicher) . '</p>';
+        $html .= '<p><strong>Uhrzeit:</strong> ' . esc_html($uhrzeit) . ' Uhr</p>';
         $html .= '<p><strong>Benötigte Helfer:</strong> ' . esc_html($benoetigte_helfer) . '</p>';
+        $html .= '</a>';
+        
+        // "Ich helfe gern"-Button
+        $html .= '<a href="' . esc_url($mailto_link) . '" class="arbeitsdienst-button">Anmelden</a>';
+        
         $html .= '</div>';
     }
 
-    $html .= '</div>';
+    $html .= '</div>'; // Ende Container
     wp_reset_postdata();
+    
     return $html;
 }
 add_shortcode('arbeitsdienste', 'arbeitsdienste_shortcode');

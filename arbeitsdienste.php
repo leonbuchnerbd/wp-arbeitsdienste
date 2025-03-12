@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: Arbeitsdienste Plugin
+ * Plugin Name: Arbeitsdienste
  * Description: Erstellt einen Custom Post Type für Arbeitsdienste und zeigt diese als Kacheln auf der Website an.
- * Version: 1.0
+ * Version: 1.3
  * Author: Leon Buchner
  */
 
@@ -17,6 +17,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/arbeitsdienste-cpt.php';
 if (is_admin()) {
     require_once plugin_dir_path(__FILE__) . 'admin/arbeitsdienste-admin.php';
     require_once plugin_dir_path(__FILE__) . 'admin/arbeitsdienste-meta.php';
+    require_once plugin_dir_path(__FILE__) . 'admin/arbeitsdienste-settings.php';
 }
 
 // Shortcode für die Website

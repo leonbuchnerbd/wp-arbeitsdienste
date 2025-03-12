@@ -28,8 +28,7 @@ function arbeitsdienste_admin_page() {
                     <th>ID</th>
                     <th>Aufgabe</th>
                     <th>Datum</th>
-                    <th>Arbeitskreis</th>
-                    <th>Verantwortlicher</th>
+                    <th>Uhrzeit</th>
                     <th>Benötigte Helfer</th>
                     <th>Aktionen</th>
                 </tr>
@@ -46,17 +45,15 @@ function arbeitsdienste_admin_page() {
 
                 if (!empty($arbeitsdienste)) {
                     foreach ($arbeitsdienste as $dienst) {
-                        $arbeitskreis = get_post_meta($dienst->ID, 'arbeitskreis', true);
                         $datum = get_post_meta($dienst->ID, 'datum', true);
-                        $verantwortlicher = get_post_meta($dienst->ID, 'verantwortlicher', true);
+                        $time = get_post_meta($dienst->ID, 'uhrzeit', true);
                         $benoetigte_helfer = get_post_meta($dienst->ID, 'benoetigte_helfer', true);
 
                         echo '<tr>';
                         echo '<td>' . esc_html($dienst->ID) . '</td>';
                         echo '<td>' . esc_html($dienst->post_title) . '</td>';
                         echo '<td>' . esc_html($datum) . '</td>';
-                        echo '<td>' . esc_html($arbeitskreis) . '</td>';
-                        echo '<td>' . esc_html($verantwortlicher) . '</td>';
+                        echo '<td>' . esc_html($time) . '</td>';
                         echo '<td>' . esc_html($benoetigte_helfer) . '</td>';
                         echo '<td>
                                 <a href="' . get_edit_post_link($dienst->ID) . '" class="button button-primary">Bearbeiten</a>

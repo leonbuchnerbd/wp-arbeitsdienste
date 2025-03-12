@@ -1,0 +1,42 @@
+.arbeitsdienst-meta-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 10px;
+}
+
+.arbeitsdienst-meta-field {
+    flex: 1 1 45%;
+    display: flex;
+    flex-direction: column;
+}
+
+.arbeitsdienst-meta-field.full-width {
+    flex: 1 1 100%;
+}
+
+.arbeitsdienst-meta-field label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.arbeitsdienst-meta-field input,
+.arbeitsdienst-meta-field textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.arbeitsdienst-meta-field textarea {
+    height: 100px;
+    resize: vertical;
+}
+
+/* Mobile Ansicht optimieren */
+@media (max-width: 600px) {
+    .arbeitsdienst-meta-field {
+        flex: 1 1 100%;
+    }
+}
