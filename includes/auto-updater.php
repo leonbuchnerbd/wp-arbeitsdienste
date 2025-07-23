@@ -86,6 +86,44 @@ class ArbeitsdiensteAutoUpdater {
                 } else {
                     echo '<a href="' . add_query_arg('force_update_check', '1') . '" class="button">🔄 Update-Check erzwingen</a><br>';
                 }
+                
+                // Manueller Transient-Trigger
+                if (isset($_GET['force_transient'])) {
+                    echo '<h4>🔧 Manueller Transient-Trigger:</h4>';
+                    
+                    // Transient komplett zurücksetzen
+                    delete_site_transient('update_plugins');
+                    
+                    // Neuen Transient erstellen
+                    $new_transient = new stdClass();
+                    $new_transient->last_checked = time();
+                    $new_transient->checked = array();
+                    $new_transient->response = array();
+                    
+                    // Unser Plugin hinzufügen
+                    $new_transient->checked[$this->plugin_slug] = $this->version;
+                    
+                    // GitHub-Daten abrufen
+                    $github_data = $this->get_repository_info();
+                    if ($github_data && version_compare($this->version, $github_data['tag_name'], '<')) {
+                        $new_transient->response[$this->plugin_slug] = (object) array(
+                            'slug' => dirname($this->plugin_slug),
+                            'plugin' => $this->plugin_slug,
+                            'new_version' => $github_data['tag_name'],
+                            'tested' => '6.6',
+                            'package' => $github_data['zipball_url'],
+                            'url' => $github_data['html_url'],
+                            'id' => $this->plugin_slug
+                        );
+                        echo '✅ Update-Response manuell hinzugefügt!<br>';
+                    }
+                    
+                    // Transient speichern
+                    set_site_transient('update_plugins', $new_transient);
+                    echo '✅ Transient manuell erstellt! <a href="' . remove_query_arg('force_transient') . '">Seite neu laden</a><br>';
+                } else {
+                    echo '<a href="' . add_query_arg('force_transient', '1') . '" class="button button-primary">🎯 Transient manuell erstellen</a><br>';
+                }
             } else {
                 echo '❌ GitHub API Fehler oder keine Releases gefunden<br>';
             }
@@ -132,18 +170,29 @@ class ArbeitsdiensteAutoUpdater {
      * Update-Check durchführen
      */
     public function modify_transient($transient) {
+        // Debug-Log
+        error_log('Arbeitsdienste: modify_transient aufgerufen');
+        
         if (empty($transient->checked)) {
+            error_log('Arbeitsdienste: Transient->checked ist leer');
             return $transient;
         }
         
+        error_log('Arbeitsdienste: Plugin-Slug = ' . $this->plugin_slug);
+        error_log('Arbeitsdienste: Checked Plugins = ' . print_r(array_keys($transient->checked), true));
+        
         // Prüfe ob unser Plugin in der checked Liste ist
         if (!isset($transient->checked[$this->plugin_slug])) {
-            return $transient;
+            error_log('Arbeitsdienste: Plugin nicht in checked Liste gefunden');
+            // Füge Plugin zur checked Liste hinzu (Fallback)
+            $transient->checked[$this->plugin_slug] = $this->version;
         }
         
         $remote_data = $this->get_repository_info();
         
         if ($remote_data && version_compare($this->version, $remote_data['tag_name'], '<')) {
+            error_log('Arbeitsdienste: Update verfügbar - ' . $this->version . ' -> ' . $remote_data['tag_name']);
+            
             // Verwende zipball_url für bessere Kompatibilität
             $download_url = $remote_data['zipball_url'];
             
@@ -156,6 +205,10 @@ class ArbeitsdiensteAutoUpdater {
                 'url' => $remote_data['html_url'],
                 'id' => $this->plugin_slug
             );
+            
+            error_log('Arbeitsdienste: Update in Transient eingetragen');
+        } else {
+            error_log('Arbeitsdienste: Kein Update verfügbar oder GitHub API Fehler');
         }
         
         return $transient;
