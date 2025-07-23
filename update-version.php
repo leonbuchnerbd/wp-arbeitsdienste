@@ -1,7 +1,11 @@
 #!/usr/bin/env php
 <?php
 /**
- * Einfaches Version-Update Script für Arbeitsdienste Plugin
+ * Einfaches Version-Upd    echo "\n🚀 Nächste Schritte:\n";
+    echo "git add .\n";
+    echo "git commit -m \"🚀 Version $newVersion\"\n";
+    echo "git tag $newVersion\n";
+    echo "git push origin main --tags\n";cript für Arbeitsdienste Plugin
  * 
  * Verwendung:
  * php update-version.php           # Aktuelle Version anzeigen

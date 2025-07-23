@@ -5,6 +5,9 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: write
+  
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -15,8 +18,11 @@ jobs:
       
     - name: 📋 Get Version from Tag
       id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-      
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "🏷️ Version: $VERSION"
+        
     - name: 📄 Generate Release Notes
       id: release_notes
       run: |
@@ -50,19 +56,51 @@ jobs:
         
         > Nach der Installation werden alle WordPress-Installationen mit diesem Plugin automatisch über verfügbare Updates benachrichtigt!
         EOF
+        echo "📄 Release Notes erstellt"
         
     - name: 🗜️ Create Plugin ZIP
       run: |
+        echo "📦 Erstelle ZIP-Datei für Version ${{ steps.version.outputs.VERSION }}"
+        
         # Erstelle saubere ZIP-Datei ohne Development-Files
         mkdir -p release/arbeitsdienste-plugin
         
-        # Kopiere Plugin-Dateien
-        cp arbeitsdienste-plugin.php release/arbeitsdienste-plugin/
-        cp uninstall.php release/arbeitsdienste-plugin/
-        cp -r admin release/arbeitsdienste-plugin/
-        cp -r assets release/arbeitsdienste-plugin/
-        cp -r includes release/arbeitsdienste-plugin/
-        cp -r public release/arbeitsdienste-plugin/
+        # Debug: Zeige verfügbare Dateien
+        echo "📁 Verfügbare Dateien:"
+        ls -la
+        
+        # Kopiere Plugin-Dateien (prüfe zuerst ob sie existieren)
+        if [ -f "arbeitsdienste-plugin.php" ]; then
+          cp arbeitsdienste-plugin.php release/arbeitsdienste-plugin/
+          echo "✅ arbeitsdienste-plugin.php kopiert"
+        else
+          echo "❌ arbeitsdienste-plugin.php nicht gefunden"
+        fi
+        
+        if [ -f "uninstall.php" ]; then
+          cp uninstall.php release/arbeitsdienste-plugin/
+          echo "✅ uninstall.php kopiert"
+        fi
+        
+        if [ -d "admin" ]; then
+          cp -r admin release/arbeitsdienste-plugin/
+          echo "✅ admin/ kopiert"
+        fi
+        
+        if [ -d "assets" ]; then
+          cp -r assets release/arbeitsdienste-plugin/
+          echo "✅ assets/ kopiert"
+        fi
+        
+        if [ -d "includes" ]; then
+          cp -r includes release/arbeitsdienste-plugin/
+          echo "✅ includes/ kopiert"
+        fi
+        
+        if [ -d "public" ]; then
+          cp -r public release/arbeitsdienste-plugin/
+          echo "✅ public/ kopiert"
+        fi
         
         # Erstelle ZIP
         cd release
@@ -73,8 +111,11 @@ jobs:
         echo "📦 ZIP-Inhalt:"
         unzip -l "arbeitsdienste-plugin-v${{ steps.version.outputs.VERSION }}.zip"
         
+        echo "📊 ZIP-Datei Größe:"
+        ls -lh "arbeitsdienste-plugin-v${{ steps.version.outputs.VERSION }}.zip"
+        
     - name: 🚀 Create GitHub Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         name: Version ${{ steps.version.outputs.VERSION }}
         body_path: release_notes.md
@@ -83,6 +124,7 @@ jobs:
         draft: false
         prerelease: false
         generate_release_notes: false
+        fail_on_unmatched_files: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
