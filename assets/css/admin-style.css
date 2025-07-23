@@ -1,0 +1,277 @@
+/* Arbeitsdienste Admin Styles */
+
+.arbeitsdienste-meta-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.arbeitsdienste-meta-table td {
+    padding: 10px 15px 10px 0;
+    vertical-align: top;
+}
+
+.arbeitsdienste-meta-table input,
+.arbeitsdienste-meta-table select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.arbeitsdienste-meta-table label {
+    font-weight: 600;
+    color: #23282d;
+    display: block;
+    margin-bottom: 5px;
+}
+
+#zeit_details {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f9f9f9;
+    border: 1px solid #e1e1e1;
+    border-radius: 4px;
+}
+
+#zeittyp {
+    margin-bottom: 10px;
+}
+
+/* Export Button Styling */
+.export-button-container {
+    margin-bottom: 20px;
+}
+
+.export-button-container .button-primary {
+    background: #0073aa;
+    border-color: #0073aa;
+    color: white;
+    padding: 8px 16px;
+    text-decoration: none;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.export-button-container .button-primary:hover {
+    background: #005a87;
+    border-color: #005a87;
+    color: white;
+}
+
+/* Admin Table Improvements */
+.wp-list-table th,
+.wp-list-table td {
+    padding: 10px;
+}
+
+.wp-list-table .button {
+    margin-right: 5px;
+}
+
+/* Meta Box Styling */
+#arbeitsdienste_details .inside {
+    margin: 0;
+    padding: 0;
+}
+
+/* Form Field Groups */
+.field-group {
+    margin-bottom: 20px;
+}
+
+.field-group:last-child {
+    margin-bottom: 0;
+}
+
+/* Responsive Admin */
+@media (max-width: 1024px) {
+    .arbeitsdienste-meta-table {
+        display: block;
+    }
+    
+    .arbeitsdienste-meta-table tr {
+        display: block;
+        margin-bottom: 20px;
+    }
+    
+    .arbeitsdienste-meta-table td {
+        display: block;
+        width: 100%;
+        padding: 10px 0;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .arbeitsdienste-meta-table td:last-child {
+        border-bottom: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .wrap h1 {
+        font-size: 1.5em;
+        margin-bottom: 15px;
+    }
+    
+    .export-button-container {
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    
+    .export-button-container .button-primary {
+        width: 100%;
+        max-width: 300px;
+        padding: 12px 20px;
+        font-size: 16px;
+        justify-content: center;
+    }
+    
+    /* Admin Table Mobile */
+    .wp-list-table {
+        font-size: 14px;
+    }
+    
+    .wp-list-table th,
+    .wp-list-table td {
+        padding: 8px 4px;
+        word-wrap: break-word;
+    }
+    
+    /* Hide less important columns on mobile */
+    .wp-list-table th:nth-child(6), /* Arbeitskreis */
+    .wp-list-table td:nth-child(6),
+    .wp-list-table th:nth-child(7), /* Verantwortlicher */
+    .wp-list-table td:nth-child(7) {
+        display: none;
+    }
+    
+    .wp-list-table .button {
+        display: block;
+        width: 100%;
+        margin: 2px 0;
+        text-align: center;
+        font-size: 12px;
+        padding: 6px 8px;
+    }
+    
+    /* Meta Box Mobile */
+    .arbeitsdienste-meta-table input,
+    .arbeitsdienste-meta-table select {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 10px 12px;
+        border-radius: 6px;
+    }
+    
+    .arbeitsdienste-meta-table label {
+        font-size: 15px;
+        margin-bottom: 8px;
+    }
+    
+    #zeit_details {
+        padding: 15px;
+        margin-top: 15px;
+        border-radius: 6px;
+    }
+    
+    /* Time fields mobile optimization */
+    #zeit_details input[type="time"] {
+        font-size: 18px;
+        padding: 12px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .wrap {
+        margin: 10px 5px 0 15px;
+    }
+    
+    .wrap h1 {
+        font-size: 1.3em;
+        margin-bottom: 10px;
+    }
+    
+    .export-button-container .button-primary {
+        padding: 15px 20px;
+        font-size: 18px;
+    }
+    
+    /* Ultra-compact table for tiny screens */
+    .wp-list-table {
+        font-size: 12px;
+    }
+    
+    .wp-list-table th,
+    .wp-list-table td {
+        padding: 6px 2px;
+        vertical-align: top;
+    }
+    
+    /* Show only essential columns on very small screens */
+    .wp-list-table th:nth-child(1), /* ID */
+    .wp-list-table td:nth-child(1),
+    .wp-list-table th:nth-child(5), /* Zeit */
+    .wp-list-table td:nth-child(5),
+    .wp-list-table th:nth-child(8), /* Benötigte Helfer */
+    .wp-list-table td:nth-child(8) {
+        display: none;
+    }
+    
+    .wp-list-table .button {
+        font-size: 10px;
+        padding: 4px 6px;
+        margin: 1px 0;
+    }
+    
+    /* Meta Box Ultra Mobile */
+    .arbeitsdienste-meta-table td {
+        padding: 8px 0;
+        margin-bottom: 10px;
+    }
+    
+    .arbeitsdienste-meta-table input,
+    .arbeitsdienste-meta-table select {
+        font-size: 16px;
+        padding: 12px;
+    }
+    
+    .arbeitsdienste-meta-table label {
+        font-size: 14px;
+        font-weight: bold;
+    }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+    .arbeitsdienste-meta-table input,
+    .arbeitsdienste-meta-table select {
+        min-height: 44px; /* Apple's recommended touch target size */
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .wp-list-table .button {
+        min-height: 44px;
+        padding: 10px 15px;
+    }
+    
+    .export-button-container .button-primary {
+        min-height: 50px;
+        padding: 15px 25px;
+    }
+}
+
+/* Success/Error Messages */
+.notice.arbeitsdienste-notice {
+    border-left-color: #0073aa;
+}
+
+.notice.arbeitsdienste-notice.notice-success {
+    border-left-color: #46b450;
+}
+
+.notice.arbeitsdienste-notice.notice-error {
+    border-left-color: #dc3232;
+}

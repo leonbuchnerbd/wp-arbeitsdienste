@@ -12,10 +12,10 @@
     border-radius: 4px;
     padding: 20px;
     margin-bottom: 15px;
+    cursor: pointer;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     display: block;
-    /* Kein cursor: pointer mehr - nur der Button ist klickbar */
 }
 
 .arbeitsdienst-kachel:hover {
@@ -23,35 +23,20 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
-/* Header mit Titel und ID */
-.arbeitsdienst-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 15px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
+/* Hide ID badge in simple style */
+.arbeitsdienst-id {
+    display: none;
 }
 
-.arbeitsdienst-header h2 {
+/* Title styling like original */
+.arbeitsdienst-kachel h2 {
     color: #333;
     font-size: 20px;
-    margin: 0;
+    margin: 0 0 15px 0;
     line-height: 1.3;
     font-weight: 600;
-    flex: 1;
-}
-
-/* ID badge in header */
-.arbeitsdienst-id {
-    background-color: #6c757d;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: bold;
-    margin-left: 10px;
-    white-space: nowrap;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
 }
 
 /* Simple information display - no fancy badges */
@@ -88,13 +73,13 @@
     border-top: 1px solid #eee;
 }
 
-/* Simple registration button - RED */
+/* Simple registration button */
 .arbeitsdienst-anmelden {
-    background-color: #dc3545;
-    border: 1px solid #dc3545;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
     border-radius: 4px;
     padding: 10px 20px;
-    color: white;
+    color: #495057;
     font-size: 14px;
     text-align: center;
     transition: all 0.2s ease;
@@ -105,10 +90,11 @@
     font-weight: 500;
 }
 
-.arbeitsdienst-anmelden:hover {
-    background-color: #c82333;
+.arbeitsdienst-anmelden:hover,
+.arbeitsdienst-kachel:hover .arbeitsdienst-anmelden {
+    background-color: #007cba;
     color: white;
-    border-color: #c82333;
+    border-color: #007cba;
 }
 
 /* Content layout */
@@ -151,11 +137,16 @@
         min-height: 48px;
         padding: 15px;
         font-size: 16px;
-        /* Touch-optimierte Button-Größe */
     }
     
-    .arbeitsdienst-anmelden:active {
-        transform: scale(0.95);
-        background-color: #a71e2a;
+    .arbeitsdienst-kachel:active {
+        transform: scale(0.98);
+        box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    
+    .arbeitsdienst-kachel:active .arbeitsdienst-anmelden {
+        background-color: #007cba;
+        color: white;
+        border-color: #007cba;
     }
 }

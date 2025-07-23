@@ -1,0 +1,174 @@
+/* Mobile-First Responsive Optimizations für Arbeitsdienste Plugin */
+
+/* Base mobile styles (already included in main CSS, this is for additional optimizations) */
+
+/* Progressive Web App optimizations */
+@media (display-mode: standalone) {
+    .arbeitsdienste-container {
+        padding-top: 20px; /* Account for status bar in PWA mode */
+    }
+}
+
+/* iOS Safari specific optimizations */
+@supports (-webkit-touch-callout: none) {
+    .arbeitsdienst-kachel {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    
+    .arbeitsdienst-anmelden {
+        -webkit-tap-highlight-color: rgba(0, 123, 186, 0.3);
+    }
+}
+
+/* Android Chrome specific optimizations */
+@media screen and (-webkit-min-device-pixel-ratio: 1.5) {
+    .arbeitsdienst-kachel {
+        border-width: 0.5px;
+    }
+}
+
+/* Large mobile screens (iPhone Plus, large Android phones) */
+@media (min-width: 414px) and (max-width: 767px) {
+    .arbeitsdienste-container {
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 18px;
+        margin: 18px 15px;
+    }
+    
+    .arbeitsdienst-kachel {
+        padding: 18px;
+        min-height: 190px;
+    }
+    
+    .arbeitsdienst-kachel h2 {
+        font-size: 1.3em;
+    }
+    
+    .arbeitsdienst-anmelden {
+        min-height: 48px;
+        font-size: 15px;
+    }
+}
+
+/* Small mobile screens (iPhone SE, small Android phones) */
+@media (max-width: 375px) {
+    .arbeitsdienste-container {
+        margin: 8px 8px;
+        gap: 12px;
+    }
+    
+    .arbeitsdienst-kachel {
+        padding: 10px;
+        min-height: 160px;
+        border-radius: 6px;
+    }
+    
+    .arbeitsdienst-kachel h2 {
+        font-size: 1.05em;
+        padding-right: 55px;
+        margin-bottom: 8px;
+    }
+    
+    .arbeitsdienst-id {
+        font-size: 9px;
+        padding: 2px 4px;
+        top: 5px;
+        right: 5px;
+    }
+    
+    .arbeitsdienst-kachel p {
+        font-size: 12px;
+        margin: 4px 0;
+        line-height: 1.4;
+    }
+    
+    .arbeitsdienst-beschreibung {
+        font-size: 11px;
+        padding: 6px;
+        margin: 6px 0;
+    }
+    
+    .arbeitsdienst-anmelden {
+        min-height: 42px;
+        padding: 8px;
+        font-size: 12px;
+        margin-top: 8px;
+    }
+    
+    .email-icon {
+        font-size: 1.1em;
+    }
+}
+
+/* Foldable phones and unusual aspect ratios */
+@media (max-aspect-ratio: 13/9) and (max-width: 768px) {
+    .arbeitsdienste-container {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .arbeitsdienst-kachel {
+        min-height: 140px;
+        padding: 12px;
+    }
+}
+
+/* Performance optimizations for older/slower devices */
+@media (max-width: 768px) {
+    .arbeitsdienst-kachel {
+        will-change: transform; /* Optimize for animations */
+        backface-visibility: hidden; /* Prevent flickering */
+    }
+    
+    .arbeitsdienst-kachel:hover {
+        will-change: auto; /* Reset after animation */
+    }
+}
+
+/* Print styles for mobile */
+@media print {
+    .arbeitsdienste-container {
+        display: block !important;
+        grid-template-columns: none !important;
+    }
+    
+    .arbeitsdienst-kachel {
+        display: block !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+        box-shadow: none !important;
+        border: 1px solid #000 !important;
+        min-height: auto !important;
+    }
+    
+    .arbeitsdienst-anmelden {
+        display: none !important; /* Hide interactive elements */
+    }
+    
+    .email-icon {
+        display: none !important;
+    }
+}
+
+/* Accessibility enhancements for mobile */
+@media (max-width: 768px) {
+    /* Increase touch targets for better accessibility */
+    .arbeitsdienst-kachel:focus {
+        outline: 3px solid #007cba;
+        outline-offset: 3px;
+    }
+    
+    /* Better contrast in mobile */
+    .arbeitsdienst-kachel {
+        background: #ffffff;
+        border: 1.5px solid #d1d5db;
+    }
+    
+    /* Larger text for better readability on small screens */
+    .arbeitsdienst-kachel strong {
+        font-weight: 700;
+    }
+}
