@@ -9,7 +9,7 @@ if (!defined('ABSPATH') && !defined('ARBEITSDIENSTE_VERSION_STANDALONE')) {
 }
 
 // Plugin Version
-define('ARBEITSDIENSTE_PLUGIN_VERSION', '2.5');
+define('ARBEITSDIENSTE_PLUGIN_VERSION', '2.7');
 
 // Wenn als standalone Script ausgeführt, Version ausgeben
 if (defined('ARBEITSDIENSTE_VERSION_STANDALONE') || (php_sapi_name() === 'cli' && basename($_SERVER['SCRIPT_NAME']) === 'version.php')) {

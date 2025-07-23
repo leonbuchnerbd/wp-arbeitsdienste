@@ -26,8 +26,31 @@ class ArbeitsdiensteAutoUpdater {
         add_filter('plugins_api', array($this, 'plugin_popup'), 10, 3);
         add_filter('upgrader_post_install', array($this, 'after_install'), 10, 3);
         
-        // Admin-Hinweise für Updates
+        // Debug-Informationen in WordPress-Admin
         add_action('admin_notices', array($this, 'update_notice'));
+        add_action('admin_init', array($this, 'debug_info'));
+    }
+    
+    /**
+     * Debug-Informationen
+     */
+    public function debug_info() {
+        if (current_user_can('update_plugins') && isset($_GET['debug_updater'])) {
+            echo '<div class="notice notice-info"><p>';
+            echo '<strong>Auto-Updater Debug:</strong><br>';
+            echo 'Plugin Slug: ' . $this->plugin_slug . '<br>';
+            echo 'Aktuelle Version: ' . $this->version . '<br>';
+            echo 'GitHub Repo: ' . $this->github_username . '/' . $this->github_repo . '<br>';
+            
+            $remote_data = $this->get_repository_info();
+            if ($remote_data) {
+                echo 'GitHub Version: ' . $remote_data['tag_name'] . '<br>';
+                echo 'Download URL: ' . $remote_data['zipball_url'] . '<br>';
+            } else {
+                echo 'GitHub API Fehler oder keine Releases gefunden<br>';
+            }
+            echo '</p></div>';
+        }
     }
     
     /**
@@ -39,13 +62,27 @@ class ArbeitsdiensteAutoUpdater {
             $this->github_repo
         );
         
+        // Cache für 1 Stunde
+        $cache_key = 'arbeitsdienste_github_release_' . md5($request_uri);
+        $cached_data = get_transient($cache_key);
+        
+        if ($cached_data !== false) {
+            return $cached_data;
+        }
+        
         $request = wp_remote_get($request_uri, array(
-            'timeout' => 10,
-            'user-agent' => 'WordPress-Plugin-Updater'
+            'timeout' => 15,
+            'user-agent' => 'WordPress-Arbeitsdienste-Plugin/1.0'
         ));
         
         if (!is_wp_error($request) && wp_remote_retrieve_response_code($request) === 200) {
-            return json_decode(wp_remote_retrieve_body($request), true);
+            $data = json_decode(wp_remote_retrieve_body($request), true);
+            
+            if ($data && isset($data['tag_name'])) {
+                // Cache für 1 Stunde
+                set_transient($cache_key, $data, HOUR_IN_SECONDS);
+                return $data;
+            }
         }
         
         return false;
@@ -59,16 +96,38 @@ class ArbeitsdiensteAutoUpdater {
             return $transient;
         }
         
+        // Prüfe ob unser Plugin in der checked Liste ist
+        if (!isset($transient->checked[$this->plugin_slug])) {
+            return $transient;
+        }
+        
         $remote_data = $this->get_repository_info();
         
         if ($remote_data && version_compare($this->version, $remote_data['tag_name'], '<')) {
+            // Verwende die ZIP-Datei aus dem Release (nicht zipball_url)
+            $download_url = '';
+            if (isset($remote_data['assets']) && is_array($remote_data['assets'])) {
+                foreach ($remote_data['assets'] as $asset) {
+                    if (strpos($asset['name'], '.zip') !== false) {
+                        $download_url = $asset['browser_download_url'];
+                        break;
+                    }
+                }
+            }
+            
+            // Fallback auf zipball_url wenn keine ZIP-Asset gefunden
+            if (empty($download_url)) {
+                $download_url = $remote_data['zipball_url'];
+            }
+            
             $transient->response[$this->plugin_slug] = (object) array(
-                'slug' => $this->plugin_slug,
+                'slug' => dirname($this->plugin_slug),
                 'plugin' => $this->plugin_slug,
                 'new_version' => $remote_data['tag_name'],
                 'tested' => '6.6',
-                'package' => $remote_data['zipball_url'],
-                'url' => $remote_data['html_url']
+                'package' => $download_url,
+                'url' => $remote_data['html_url'],
+                'id' => $this->plugin_slug
             );
         }
         
@@ -99,12 +158,13 @@ class ArbeitsdiensteAutoUpdater {
                 'short_description' => 'Verwaltung von Arbeitsdiensten für Vereine',
                 'sections' => array(
                     'description' => 'Plugin zur Verwaltung von Arbeitsdiensten mit E-Mail-Integration und CSV-Export.',
-                    'changelog' => $remote_data['body']
+                    'changelog' => isset($remote_data['body']) ? $remote_data['body'] : 'Siehe GitHub Release für Details.'
                 ),
                 'download_link' => $remote_data['zipball_url'],
                 'tested' => '6.6',
                 'requires' => '5.0',
-                'last_updated' => $remote_data['published_at']
+                'last_updated' => isset($remote_data['published_at']) ? $remote_data['published_at'] : '',
+                'banners' => array()
             );
         }
         
@@ -117,13 +177,13 @@ class ArbeitsdiensteAutoUpdater {
     public function after_install($response, $hook_extra, $result) {
         global $wp_filesystem;
         
+        if (!isset($hook_extra['plugin']) || $hook_extra['plugin'] !== $this->plugin_slug) {
+            return $result;
+        }
+        
         $install_directory = plugin_dir_path($this->plugin_file);
         $wp_filesystem->move($result['destination'], $install_directory);
         $result['destination'] = $install_directory;
-        
-        if ($this->plugin_slug) {
-            activate_plugin($this->plugin_slug);
-        }
         
         return $result;
     }
@@ -140,12 +200,14 @@ class ArbeitsdiensteAutoUpdater {
         
         if ($remote_data && version_compare($this->version, $remote_data['tag_name'], '<')) {
             echo '<div class="notice notice-warning is-dismissible">';
-            echo '<p><strong>Arbeitsdienste Plugin:</strong> ';
+            echo '<p><strong>🎯 Arbeitsdienste Plugin:</strong> ';
             echo sprintf(
-                'Version %s ist verfügbar. <a href="%s">Jetzt aktualisieren</a>',
+                'Version %s ist verfügbar! <a href="%s" class="button button-primary">Jetzt aktualisieren</a> | <a href="%s" target="_blank">Release-Details</a>',
                 $remote_data['tag_name'],
-                admin_url('plugins.php')
+                admin_url('plugins.php'),
+                $remote_data['html_url']
             );
+            echo ' | <a href="' . admin_url('plugins.php?debug_updater=1') . '">Debug-Info</a>';
             echo '</p>';
             echo '</div>';
         }
