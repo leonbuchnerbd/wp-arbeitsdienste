@@ -65,6 +65,24 @@ class ArbeitsdiensteAutoUpdater {
                 } else {
                     echo '❌ Plugin ist nicht in checked Liste<br>';
                 }
+                
+                // Cache-Clearing-Optionen
+                echo '<hr>';
+                echo '<strong>Cache-Management:</strong><br>';
+                if (isset($_GET['clear_cache'])) {
+                    delete_transient('arbeitsdienste_github_release_' . md5(sprintf('https://api.github.com/repos/%s/%s/releases/latest', $this->github_username, $this->github_repo)));
+                    delete_site_transient('update_plugins');
+                    echo '✅ Cache geleert! <a href="' . remove_query_arg('clear_cache') . '">Seite neu laden</a><br>';
+                } else {
+                    echo '<a href="' . add_query_arg('clear_cache', '1') . '" class="button">🗑️ Cache leeren</a><br>';
+                }
+                
+                if (isset($_GET['force_update_check'])) {
+                    wp_update_plugins();
+                    echo '✅ Update-Check erzwungen! <a href="' . remove_query_arg('force_update_check') . '">Seite neu laden</a><br>';
+                } else {
+                    echo '<a href="' . add_query_arg('force_update_check', '1') . '" class="button">🔄 Update-Check erzwingen</a><br>';
+                }
             } else {
                 echo '❌ GitHub API Fehler oder keine Releases gefunden<br>';
             }
