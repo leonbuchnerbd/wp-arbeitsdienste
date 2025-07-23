@@ -37,8 +37,9 @@ class ArbeitsdiensteAutoUpdater {
     public function debug_info() {
         if (current_user_can('update_plugins') && isset($_GET['debug_updater'])) {
             echo '<div class="notice notice-info"><p>';
-            echo '<strong>Auto-Updater Debug:</strong><br>';
+            echo '<strong>🔧 Auto-Updater Debug:</strong><br>';
             echo 'Plugin Slug: ' . $this->plugin_slug . '<br>';
+            echo 'Plugin Directory: ' . dirname($this->plugin_slug) . '<br>';
             echo 'Aktuelle Version: ' . $this->version . '<br>';
             echo 'GitHub Repo: ' . $this->github_username . '/' . $this->github_repo . '<br>';
             
@@ -46,8 +47,26 @@ class ArbeitsdiensteAutoUpdater {
             if ($remote_data) {
                 echo 'GitHub Version: ' . $remote_data['tag_name'] . '<br>';
                 echo 'Download URL: ' . $remote_data['zipball_url'] . '<br>';
+                
+                // Zeige Update-Status
+                $needs_update = version_compare($this->version, $remote_data['tag_name'], '<');
+                echo '<strong>Update verfügbar: ' . ($needs_update ? '✅ JA' : '❌ NEIN') . '</strong><br>';
+                
+                // Zeige Transient-Info
+                $transient = get_site_transient('update_plugins');
+                if (isset($transient->response[$this->plugin_slug])) {
+                    echo '✅ Plugin ist in Update-Transient registriert<br>';
+                } else {
+                    echo '❌ Plugin ist NICHT in Update-Transient registriert<br>';
+                }
+                
+                if (isset($transient->checked[$this->plugin_slug])) {
+                    echo 'Checked Version: ' . $transient->checked[$this->plugin_slug] . '<br>';
+                } else {
+                    echo '❌ Plugin ist nicht in checked Liste<br>';
+                }
             } else {
-                echo 'GitHub API Fehler oder keine Releases gefunden<br>';
+                echo '❌ GitHub API Fehler oder keine Releases gefunden<br>';
             }
             echo '</p></div>';
         }

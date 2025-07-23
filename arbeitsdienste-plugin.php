@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Arbeitsdienste Plugin
  * Description: Erstellt einen Custom Post Type für Arbeitsdienste und zeigt diese als Kacheln auf der Website an. Mit CSV-Export, erweiterten Zeit-Optionen und E-Mail-Integration.
- * Version: 2.7
+ * Version: 2.8
  * Author: Leon Buchner
  * GitHub Plugin URI: leonbuchnerbd/wp-arbeitsdienste
  * Primary Branch: main

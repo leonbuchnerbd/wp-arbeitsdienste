@@ -65,28 +65,64 @@ function test_github_api() {
 function test_version_comparison() {
     echo "\n🔢 Teste Version-Vergleich...\n";
     
-    // Aktuelle Version laden
+    // Aktuelle Version aus Datei lesen (ohne include)
     $version_file = __DIR__ . '/includes/version.php';
+    $current_version = '1.0.0';
+    
     if (file_exists($version_file)) {
-        include $version_file;
-        $current_version = defined('ARBEITSDIENSTE_PLUGIN_VERSION') ? ARBEITSDIENSTE_PLUGIN_VERSION : '1.0.0';
-    } else {
-        $current_version = '1.0.0';
+        $content = file_get_contents($version_file);
+        if (preg_match("/define\('ARBEITSDIENSTE_PLUGIN_VERSION',\s*'([^']+)'\)/", $content, $matches)) {
+            $current_version = $matches[1];
+        }
     }
     
     echo "Aktuelle Version: $current_version\n";
     
-    $github_data = test_github_api();
-    if ($github_data && isset($github_data['tag_name'])) {
-        $remote_version = $github_data['tag_name'];
-        echo "GitHub Version: $remote_version\n";
-        
-        $needs_update = version_compare($current_version, $remote_version, '<');
-        echo "Update verfügbar: " . ($needs_update ? '✅ JA' : '❌ NEIN') . "\n";
-        
-        return $needs_update;
+    // GitHub API nochmal aufrufen
+    $request_uri = 'https://api.github.com/repos/leonbuchnerbd/wp-arbeitsdienste/releases/latest';
+    
+    $curl = curl_init();
+    curl_setopt_array($curl, [
+        CURLOPT_URL => $request_uri,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_USERAGENT => 'WordPress-Arbeitsdienste-Plugin/1.0',
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_TIMEOUT => 15
+    ]);
+    
+    $response = curl_exec($curl);
+    $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    curl_close($curl);
+    
+    if ($http_code === 200) {
+        $github_data = json_decode($response, true);
+        if ($github_data && isset($github_data['tag_name'])) {
+            $remote_version = $github_data['tag_name'];
+            echo "GitHub Version: $remote_version\n";
+            
+            $needs_update = version_compare($current_version, $remote_version, '<');
+            echo "Update verfügbar: " . ($needs_update ? '✅ JA' : '❌ NEIN') . "\n";
+            
+            if ($needs_update) {
+                echo "📦 Download-URL: " . $github_data['zipball_url'] . "\n";
+                
+                // Asset-URL falls verfügbar
+                if (isset($github_data['assets']) && is_array($github_data['assets'])) {
+                    foreach ($github_data['assets'] as $asset) {
+                        if (strpos($asset['name'], '.zip') !== false) {
+                            echo "🎯 Asset-URL: " . $asset['browser_download_url'] . "\n";
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            return $needs_update;
+        }
     }
     
+    echo "❌ GitHub API Fehler\n";
     return false;
 }
 
