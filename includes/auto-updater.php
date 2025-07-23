@@ -208,24 +208,37 @@ class ArbeitsdiensteAutoUpdater {
             return $result;
         }
         
-        // GitHub ZIP-Struktur: wp-arbeitsdienste-2.8/ -> arbeitsplaene/
-        $install_directory = plugin_dir_path($this->plugin_file);
+        // Log für Debugging
+        error_log('Arbeitsdienste Update: after_install aufgerufen');
+        error_log('Plugin Slug: ' . $this->plugin_slug);
+        error_log('Destination: ' . $result['destination']);
         
-        // Prüfe ob das extrahierte Verzeichnis existiert
+        // GitHub ZIP-Struktur korrigieren
         if (isset($result['destination']) && is_dir($result['destination'])) {
-            // GitHub erstellt Ordner wie "wp-arbeitsdienste-2.8"
-            // Wir müssen nach "arbeitsplaene" umbenennen
-            $plugin_folder = dirname($install_directory);
-            $target_folder = $plugin_folder . '/arbeitsplaene';
+            $extracted_files = $wp_filesystem->dirlist($result['destination']);
             
-            // Lösche alten Plugin-Ordner falls vorhanden
-            if (is_dir($target_folder)) {
-                $wp_filesystem->delete($target_folder, true);
+            if ($extracted_files && count($extracted_files) === 1) {
+                // GitHub erstellt einen Unterordner wie "wp-arbeitsdienste-2.12"
+                $github_folder = array_keys($extracted_files)[0];
+                $source_path = $result['destination'] . '/' . $github_folder;
+                
+                // Ziel-Plugin-Ordner
+                $plugin_dir = dirname(dirname($this->plugin_file)); // plugins/arbeitsplaene
+                
+                // Alten Plugin-Ordner sichern
+                $backup_dir = $plugin_dir . '.backup.' . time();
+                $wp_filesystem->move($plugin_dir, $backup_dir);
+                
+                // Neue Version installieren
+                $wp_filesystem->move($source_path, $plugin_dir);
+                $result['destination'] = $plugin_dir;
+                
+                // Backup löschen bei erfolgreichem Update
+                $wp_filesystem->delete($backup_dir, true);
+                $wp_filesystem->delete($result['destination'] . '/../' . basename($result['destination']) . '-temp', true);
+                
+                error_log('Arbeitsdienste Update: Installation erfolgreich nach ' . $plugin_dir);
             }
-            
-            // Benenne GitHub-Ordner um
-            $wp_filesystem->move($result['destination'], $target_folder);
-            $result['destination'] = $target_folder;
         }
         
         return $result;
@@ -274,7 +287,16 @@ class ArbeitsdiensteAutoUpdater {
 
 // Auto-Updater initialisieren
 if (is_admin()) {
-    $plugin_file = dirname(dirname(__FILE__)) . '/arbeitsdienste-plugin.php';
+    $plugin_file = __FILE__;
+    // Gehe von includes/auto-updater.php zu arbeitsdienste-plugin.php
+    $plugin_file = dirname(dirname($plugin_file)) . '/arbeitsdienste-plugin.php';
+    
+    // Debug: Plugin-Pfad prüfen
+    if (!file_exists($plugin_file)) {
+        error_log('Arbeitsdienste Auto-Updater: Plugin-Datei nicht gefunden: ' . $plugin_file);
+        return;
+    }
+    
     new ArbeitsdiensteAutoUpdater($plugin_file, 'leonbuchnerbd', 'wp-arbeitsdienste');
 }
 ?>
