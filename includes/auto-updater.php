@@ -29,6 +29,9 @@ class ArbeitsdiensteAutoUpdater {
         // Debug-Informationen in WordPress-Admin
         add_action('admin_notices', array($this, 'update_notice'));
         add_action('admin_init', array($this, 'debug_info'));
+        
+        // Upgrade-Process Debug
+        add_action('upgrader_process_complete', array($this, 'upgrade_completed'), 10, 2);
     }
     
     /**
@@ -141,21 +144,8 @@ class ArbeitsdiensteAutoUpdater {
         $remote_data = $this->get_repository_info();
         
         if ($remote_data && version_compare($this->version, $remote_data['tag_name'], '<')) {
-            // Verwende die ZIP-Datei aus dem Release (nicht zipball_url)
-            $download_url = '';
-            if (isset($remote_data['assets']) && is_array($remote_data['assets'])) {
-                foreach ($remote_data['assets'] as $asset) {
-                    if (strpos($asset['name'], '.zip') !== false) {
-                        $download_url = $asset['browser_download_url'];
-                        break;
-                    }
-                }
-            }
-            
-            // Fallback auf zipball_url wenn keine ZIP-Asset gefunden
-            if (empty($download_url)) {
-                $download_url = $remote_data['zipball_url'];
-            }
+            // Verwende zipball_url für bessere Kompatibilität
+            $download_url = $remote_data['zipball_url'];
             
             $transient->response[$this->plugin_slug] = (object) array(
                 'slug' => dirname($this->plugin_slug),
@@ -218,11 +208,42 @@ class ArbeitsdiensteAutoUpdater {
             return $result;
         }
         
+        // GitHub ZIP-Struktur: wp-arbeitsdienste-2.8/ -> arbeitsplaene/
         $install_directory = plugin_dir_path($this->plugin_file);
-        $wp_filesystem->move($result['destination'], $install_directory);
-        $result['destination'] = $install_directory;
+        
+        // Prüfe ob das extrahierte Verzeichnis existiert
+        if (isset($result['destination']) && is_dir($result['destination'])) {
+            // GitHub erstellt Ordner wie "wp-arbeitsdienste-2.8"
+            // Wir müssen nach "arbeitsplaene" umbenennen
+            $plugin_folder = dirname($install_directory);
+            $target_folder = $plugin_folder . '/arbeitsplaene';
+            
+            // Lösche alten Plugin-Ordner falls vorhanden
+            if (is_dir($target_folder)) {
+                $wp_filesystem->delete($target_folder, true);
+            }
+            
+            // Benenne GitHub-Ordner um
+            $wp_filesystem->move($result['destination'], $target_folder);
+            $result['destination'] = $target_folder;
+        }
         
         return $result;
+    }
+    
+    /**
+     * Debug-Info nach abgeschlossenem Upgrade
+     */
+    public function upgrade_completed($upgrader, $hook_extra) {
+        if (isset($hook_extra['plugin']) && $hook_extra['plugin'] === $this->plugin_slug) {
+            // Log für Update-Erfolg setzen
+            set_transient('arbeitsdienste_update_success', array(
+                'time' => current_time('mysql'),
+                'old_version' => $this->version,
+                'new_version' => ARBEITSDIENSTE_PLUGIN_VERSION,
+                'hook_extra' => $hook_extra
+            ), HOUR_IN_SECONDS);
+        }
     }
     
     /**
