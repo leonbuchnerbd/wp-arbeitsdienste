@@ -1,6 +1,7 @@
 <?php
 /**
- * Auto-Updater für Arbeitsdienste Plugin via GitHub
+ * GitHub Auto-Updater für Arbeitsdienste Plugin
+ * Basiert auf WordPress Core Update-Mechanismus
  */
 
 if (!defined('ABSPATH')) {
@@ -8,332 +9,365 @@ if (!defined('ABSPATH')) {
 }
 
 class ArbeitsdiensteAutoUpdater {
-    
+    private $plugin_basename;
     private $plugin_slug;
-    private $plugin_file;
     private $version;
-    private $github_username;
     private $github_repo;
-    
-    public function __construct($plugin_file, $github_username, $github_repo) {
+    private $plugin_file;
+
+    public function __construct($plugin_file, $github_repo, $version) {
         $this->plugin_file = $plugin_file;
-        $this->plugin_slug = plugin_basename($plugin_file);
-        $this->version = ARBEITSDIENSTE_PLUGIN_VERSION;
-        $this->github_username = $github_username;
+        $this->plugin_basename = plugin_basename($plugin_file);
+        $this->plugin_slug = dirname($this->plugin_basename);
+        $this->version = $version;
         $this->github_repo = $github_repo;
+
+        add_action('init', array($this, 'init'));
+    }
+
+    public function init() {
+        // Hook in den WordPress Update-Checker
+        add_filter('pre_set_site_transient_update_plugins', array($this, 'check_for_update'));
+        add_filter('plugins_api', array($this, 'plugin_info'), 20, 3);
         
-        add_filter('pre_set_site_transient_update_plugins', array($this, 'modify_transient'), 10, 1);
-        add_filter('plugins_api', array($this, 'plugin_popup'), 10, 3);
-        add_filter('upgrader_post_install', array($this, 'after_install'), 10, 3);
+        // Custom Update-Handler für automatische Updates
+        add_filter('upgrader_pre_download', array($this, 'download_package'), 10, 4);
+        add_filter('upgrader_source_selection', array($this, 'source_selection'), 10, 4);
         
-        // Debug-Informationen in WordPress-Admin
+        // Admin-Notices für Update-Informationen
         add_action('admin_notices', array($this, 'update_notice'));
-        add_action('admin_init', array($this, 'debug_info'));
         
-        // Upgrade-Process Debug
-        add_action('upgrader_process_complete', array($this, 'upgrade_completed'), 10, 2);
+        // Update-Check bei Admin-Seitenaufruf triggern
+        add_action('admin_init', array($this, 'force_update_check'));
+        
+        // Custom Update-Handling
+        add_action('wp_ajax_arbeitsdienste_update', array($this, 'handle_update'));
+        
+        // Debug-Action hinzufügen
+        add_action('wp_ajax_arbeitsdienste_debug', array($this, 'debug_update_check'));
     }
-    
+
     /**
-     * Debug-Informationen
+     * Debug-Funktion für Update-Prüfung
      */
-    public function debug_info() {
-        if (current_user_can('update_plugins') && isset($_GET['debug_updater'])) {
-            echo '<div class="notice notice-info"><p>';
-            echo '<strong>🔧 Auto-Updater Debug:</strong><br>';
-            echo 'Plugin Slug: ' . $this->plugin_slug . '<br>';
-            echo 'Plugin Directory: ' . dirname($this->plugin_slug) . '<br>';
-            echo 'Aktuelle Version: ' . $this->version . '<br>';
-            echo 'GitHub Repo: ' . $this->github_username . '/' . $this->github_repo . '<br>';
+    public function debug_update_check() {
+        if (!current_user_can('manage_options')) {
+            wp_die('Keine Berechtigung.');
+        }
+
+        echo '<div style="background: white; padding: 20px; margin: 20px; border: 1px solid #ccc;">';
+        echo '<h2>🔧 Arbeitsdienste Auto-Update Debug</h2>';
+        
+        echo '<h3>📋 Plugin-Informationen:</h3>';
+        echo '<p><strong>Plugin-Datei:</strong> ' . esc_html($this->plugin_file) . '</p>';
+        echo '<p><strong>Plugin-Basename:</strong> ' . esc_html($this->plugin_basename) . '</p>';
+        echo '<p><strong>Plugin-Slug:</strong> ' . esc_html($this->plugin_slug) . '</p>';
+        echo '<p><strong>Aktuelle Version:</strong> ' . esc_html($this->version) . '</p>';
+        echo '<p><strong>GitHub Repository:</strong> ' . esc_html($this->github_repo) . '</p>';
+        
+        echo '<h3>🐙 GitHub API Test:</h3>';
+        $remote_version = $this->get_remote_version();
+        
+        if ($remote_version) {
+            echo '<p style="color: green;"><strong>✅ GitHub API erfolgreich:</strong></p>';
+            echo '<p><strong>Neueste Version:</strong> ' . esc_html($remote_version['new_version']) . '</p>';
+            echo '<p><strong>Download URL:</strong> ' . esc_html($remote_version['download_url']) . '</p>';
+            echo '<p><strong>Details URL:</strong> ' . esc_html($remote_version['details_url']) . '</p>';
             
-            $remote_data = $this->get_repository_info();
-            if ($remote_data) {
-                echo 'GitHub Version: ' . $remote_data['tag_name'] . '<br>';
-                echo 'Download URL: ' . $remote_data['zipball_url'] . '<br>';
-                
-                // Zeige Update-Status
-                $needs_update = version_compare($this->version, $remote_data['tag_name'], '<');
-                echo '<strong>Update verfügbar: ' . ($needs_update ? '✅ JA' : '❌ NEIN') . '</strong><br>';
-                
-                // Zeige Transient-Info
-                $transient = get_site_transient('update_plugins');
-                if (isset($transient->response[$this->plugin_slug])) {
-                    echo '✅ Plugin ist in Update-Transient registriert<br>';
-                } else {
-                    echo '❌ Plugin ist NICHT in Update-Transient registriert<br>';
-                }
-                
-                if (isset($transient->checked[$this->plugin_slug])) {
-                    echo 'Checked Version: ' . $transient->checked[$this->plugin_slug] . '<br>';
-                } else {
-                    echo '❌ Plugin ist nicht in checked Liste<br>';
-                }
-                
-                // Cache-Clearing-Optionen
-                echo '<hr>';
-                echo '<strong>Cache-Management:</strong><br>';
-                if (isset($_GET['clear_cache'])) {
-                    delete_transient('arbeitsdienste_github_release_' . md5(sprintf('https://api.github.com/repos/%s/%s/releases/latest', $this->github_username, $this->github_repo)));
-                    delete_site_transient('update_plugins');
-                    echo '✅ Cache geleert! <a href="' . remove_query_arg('clear_cache') . '">Seite neu laden</a><br>';
-                } else {
-                    echo '<a href="' . add_query_arg('clear_cache', '1') . '" class="button">🗑️ Cache leeren</a><br>';
-                }
-                
-                if (isset($_GET['force_update_check'])) {
-                    wp_update_plugins();
-                    echo '✅ Update-Check erzwungen! <a href="' . remove_query_arg('force_update_check') . '">Seite neu laden</a><br>';
-                } else {
-                    echo '<a href="' . add_query_arg('force_update_check', '1') . '" class="button">🔄 Update-Check erzwingen</a><br>';
-                }
-                
-                // Manueller Transient-Trigger
-                if (isset($_GET['force_transient'])) {
-                    echo '<h4>🔧 Manueller Transient-Trigger:</h4>';
-                    
-                    // Transient komplett zurücksetzen
-                    delete_site_transient('update_plugins');
-                    
-                    // Neuen Transient erstellen
-                    $new_transient = new stdClass();
-                    $new_transient->last_checked = time();
-                    $new_transient->checked = array();
-                    $new_transient->response = array();
-                    
-                    // Unser Plugin hinzufügen
-                    $new_transient->checked[$this->plugin_slug] = $this->version;
-                    
-                    // GitHub-Daten abrufen
-                    $github_data = $this->get_repository_info();
-                    if ($github_data && version_compare($this->version, $github_data['tag_name'], '<')) {
-                        $new_transient->response[$this->plugin_slug] = (object) array(
-                            'slug' => dirname($this->plugin_slug),
-                            'plugin' => $this->plugin_slug,
-                            'new_version' => $github_data['tag_name'],
-                            'tested' => '6.6',
-                            'package' => $github_data['zipball_url'],
-                            'url' => $github_data['html_url'],
-                            'id' => $this->plugin_slug
-                        );
-                        echo '✅ Update-Response manuell hinzugefügt!<br>';
-                    }
-                    
-                    // Transient speichern
-                    set_site_transient('update_plugins', $new_transient);
-                    echo '✅ Transient manuell erstellt! <a href="' . remove_query_arg('force_transient') . '">Seite neu laden</a><br>';
-                } else {
-                    echo '<a href="' . add_query_arg('force_transient', '1') . '" class="button button-primary">🎯 Transient manuell erstellen</a><br>';
-                }
-            } else {
-                echo '❌ GitHub API Fehler oder keine Releases gefunden<br>';
-            }
-            echo '</p></div>';
+            $version_compare = version_compare($this->version, $remote_version['new_version'], '<');
+            echo '<p><strong>Update verfügbar:</strong> ' . ($version_compare ? '✅ JA' : '❌ NEIN') . '</p>';
+        } else {
+            echo '<p style="color: red;"><strong>❌ GitHub API Fehler</strong></p>';
+            echo '<p>Mögliche Ursachen:</p>';
+            echo '<ul>';
+            echo '<li>Keine Internetverbindung</li>';
+            echo '<li>GitHub API nicht erreichbar</li>';
+            echo '<li>Repository nicht gefunden</li>';
+            echo '<li>Keine Releases im Repository</li>';
+            echo '</ul>';
         }
+        
+        echo '<h3>🔄 WordPress Update-System:</h3>';
+        $update_plugins = get_site_transient('update_plugins');
+        if (isset($update_plugins->response[$this->plugin_basename])) {
+            echo '<p style="color: green;"><strong>✅ Plugin ist im WordPress Update-System registriert</strong></p>';
+            $plugin_update = $update_plugins->response[$this->plugin_basename];
+            echo '<p><strong>Update-Version:</strong> ' . esc_html($plugin_update->new_version) . '</p>';
+        } else {
+            echo '<p style="color: orange;"><strong>⚠️ Plugin nicht im WordPress Update-System gefunden</strong></p>';
+        }
+        
+        echo '<h3>🧪 Test-Aktionen:</h3>';
+        echo '<p>';
+        echo '<a href="' . esc_url(wp_nonce_url(admin_url('admin-ajax.php?action=arbeitsdienste_update'), 'arbeitsdienste_update')) . '" class="button button-primary">🚀 Update jetzt durchführen</a> ';
+        echo '<a href="#" onclick="location.reload();" class="button">🔄 Seite neu laden</a> ';
+        echo '<a href="' . esc_url(admin_url('plugins.php')) . '" class="button">← Zurück zu Plugins</a>';
+        echo '</p>';
+        
+        echo '</div>';
+        wp_die();
     }
-    
+
     /**
-     * GitHub API URL für Releases
+     * Update-Check bei Admin-Aufrufen erzwingen
      */
-    private function get_repository_info() {
-        $request_uri = sprintf('https://api.github.com/repos/%s/%s/releases/latest', 
-            $this->github_username, 
-            $this->github_repo
-        );
-        
-        // Cache für 1 Stunde
-        $cache_key = 'arbeitsdienste_github_release_' . md5($request_uri);
-        $cached_data = get_transient($cache_key);
-        
-        if ($cached_data !== false) {
-            return $cached_data;
-        }
-        
-        $request = wp_remote_get($request_uri, array(
-            'timeout' => 15,
-            'user-agent' => 'WordPress-Arbeitsdienste-Plugin/1.0'
-        ));
-        
-        if (!is_wp_error($request) && wp_remote_retrieve_response_code($request) === 200) {
-            $data = json_decode(wp_remote_retrieve_body($request), true);
+    public function force_update_check() {
+        // Nur bei Plugin-Seiten und nur einmal pro Sitzung
+        $current_screen = get_current_screen();
+        if ($current_screen && $current_screen->id === 'plugins' && !get_transient('arbeitsdienste_force_checked')) {
+            // Update-Check erzwingen durch Löschen der Transients
+            delete_site_transient('update_plugins');
+            delete_transient('arbeitsdienste_version_check');
             
-            if ($data && isset($data['tag_name'])) {
-                // Cache für 1 Stunde
-                set_transient($cache_key, $data, HOUR_IN_SECONDS);
-                return $data;
-            }
+            // Flag setzen, damit es nicht zu oft passiert
+            set_transient('arbeitsdienste_force_checked', true, 300); // 5 Minuten
         }
-        
-        return false;
     }
-    
-    /**
-     * Update-Check durchführen
-     */
-    public function modify_transient($transient) {
-        // Debug-Log
-        error_log('Arbeitsdienste: modify_transient aufgerufen');
-        
+
+    public function check_for_update($transient) {
         if (empty($transient->checked)) {
-            error_log('Arbeitsdienste: Transient->checked ist leer');
             return $transient;
         }
-        
-        error_log('Arbeitsdienste: Plugin-Slug = ' . $this->plugin_slug);
-        error_log('Arbeitsdienste: Checked Plugins = ' . print_r(array_keys($transient->checked), true));
-        
-        // Prüfe ob unser Plugin in der checked Liste ist
-        if (!isset($transient->checked[$this->plugin_slug])) {
-            error_log('Arbeitsdienste: Plugin nicht in checked Liste gefunden');
-            // Füge Plugin zur checked Liste hinzu (Fallback)
-            $transient->checked[$this->plugin_slug] = $this->version;
-        }
-        
-        $remote_data = $this->get_repository_info();
-        
-        if ($remote_data && version_compare($this->version, $remote_data['tag_name'], '<')) {
-            error_log('Arbeitsdienste: Update verfügbar - ' . $this->version . ' -> ' . $remote_data['tag_name']);
+
+        // Cache für 12 Stunden - aber bei Versionswechseln cache leeren
+        $cache_key = 'arbeitsdienste_version_check_' . $this->version;
+        $remote_version = get_transient($cache_key);
+
+        if ($remote_version === false) {
+            // Alte Cache-Einträge löschen
+            delete_transient('arbeitsdienste_version_check');
             
-            // Verwende zipball_url für bessere Kompatibilität
-            $download_url = $remote_data['zipball_url'];
-            
-            $transient->response[$this->plugin_slug] = (object) array(
-                'slug' => dirname($this->plugin_slug),
-                'plugin' => $this->plugin_slug,
-                'new_version' => $remote_data['tag_name'],
-                'tested' => '6.6',
-                'package' => $download_url,
-                'url' => $remote_data['html_url'],
-                'id' => $this->plugin_slug
-            );
-            
-            error_log('Arbeitsdienste: Update in Transient eingetragen');
-        } else {
-            error_log('Arbeitsdienste: Kein Update verfügbar oder GitHub API Fehler');
-        }
-        
-        return $transient;
-    }
-    
-    /**
-     * Plugin-Informationen für Popup
-     */
-    public function plugin_popup($result, $action, $args) {
-        if ($action !== 'plugin_information') {
-            return $result;
-        }
-        
-        if (!isset($args->slug) || $args->slug !== dirname($this->plugin_slug)) {
-            return $result;
-        }
-        
-        $remote_data = $this->get_repository_info();
-        
-        if ($remote_data) {
-            return (object) array(
-                'name' => 'Arbeitsdienste Plugin',
-                'slug' => dirname($this->plugin_slug),
-                'version' => $remote_data['tag_name'],
-                'author' => 'Leon Buchner',
-                'homepage' => $remote_data['html_url'],
-                'short_description' => 'Verwaltung von Arbeitsdiensten für Vereine',
-                'sections' => array(
-                    'description' => 'Plugin zur Verwaltung von Arbeitsdiensten mit E-Mail-Integration und CSV-Export.',
-                    'changelog' => isset($remote_data['body']) ? $remote_data['body'] : 'Siehe GitHub Release für Details.'
-                ),
-                'download_link' => $remote_data['zipball_url'],
-                'tested' => '6.6',
-                'requires' => '5.0',
-                'last_updated' => isset($remote_data['published_at']) ? $remote_data['published_at'] : '',
-                'banners' => array()
-            );
-        }
-        
-        return $result;
-    }
-    
-    /**
-     * Nach Installation aufräumen
-     */
-    public function after_install($response, $hook_extra, $result) {
-        global $wp_filesystem;
-        
-        if (!isset($hook_extra['plugin']) || $hook_extra['plugin'] !== $this->plugin_slug) {
-            return $result;
-        }
-        
-        // Log für Debugging
-        error_log('Arbeitsdienste Update: after_install aufgerufen');
-        error_log('Plugin Slug: ' . $this->plugin_slug);
-        error_log('Destination: ' . $result['destination']);
-        
-        // GitHub ZIP-Struktur korrigieren
-        if (isset($result['destination']) && is_dir($result['destination'])) {
-            $extracted_files = $wp_filesystem->dirlist($result['destination']);
-            
-            if ($extracted_files && count($extracted_files) === 1) {
-                // GitHub erstellt einen Unterordner wie "wp-arbeitsdienste-2.12"
-                $github_folder = array_keys($extracted_files)[0];
-                $source_path = $result['destination'] . '/' . $github_folder;
-                
-                // Ziel-Plugin-Ordner
-                $plugin_dir = dirname(dirname($this->plugin_file)); // plugins/arbeitsplaene
-                
-                // Alten Plugin-Ordner sichern
-                $backup_dir = $plugin_dir . '.backup.' . time();
-                $wp_filesystem->move($plugin_dir, $backup_dir);
-                
-                // Neue Version installieren
-                $wp_filesystem->move($source_path, $plugin_dir);
-                $result['destination'] = $plugin_dir;
-                
-                // Backup löschen bei erfolgreichem Update
-                $wp_filesystem->delete($backup_dir, true);
-                $wp_filesystem->delete($result['destination'] . '/../' . basename($result['destination']) . '-temp', true);
-                
-                error_log('Arbeitsdienste Update: Installation erfolgreich nach ' . $plugin_dir);
+            $remote_version = $this->get_remote_version();
+            if ($remote_version) {
+                set_transient($cache_key, $remote_version, 12 * HOUR_IN_SECONDS);
             }
         }
-        
-        return $result;
-    }
-    
-    /**
-     * Debug-Info nach abgeschlossenem Upgrade
-     */
-    public function upgrade_completed($upgrader, $hook_extra) {
-        if (isset($hook_extra['plugin']) && $hook_extra['plugin'] === $this->plugin_slug) {
-            // Log für Update-Erfolg setzen
-            set_transient('arbeitsdienste_update_success', array(
-                'time' => current_time('mysql'),
-                'old_version' => $this->version,
-                'new_version' => ARBEITSDIENSTE_PLUGIN_VERSION,
-                'hook_extra' => $hook_extra
-            ), HOUR_IN_SECONDS);
+
+        // WICHTIG: Auch wenn keine neuere Version verfügbar ist, Plugin als "checked" markieren
+        if ($remote_version) {
+            if (version_compare($this->version, $remote_version['new_version'], '<')) {
+                // Update verfügbar - in response hinzufügen
+                $transient->response[$this->plugin_basename] = (object) array(
+                    'slug' => $this->plugin_slug,
+                    'plugin' => $this->plugin_basename,
+                    'new_version' => $remote_version['new_version'],
+                    'url' => $remote_version['details_url'],
+                    'package' => $remote_version['download_url']
+                );
+            } else {
+                // Kein Update verfügbar - aber Plugin als "checked" markieren
+                if (!isset($transient->no_update)) {
+                    $transient->no_update = array();
+                }
+                $transient->no_update[$this->plugin_basename] = (object) array(
+                    'slug' => $this->plugin_slug,
+                    'plugin' => $this->plugin_basename,
+                    'new_version' => $this->version,
+                    'url' => $remote_version['details_url'],
+                    'package' => ''
+                );
+            }
         }
+
+        return $transient;
     }
-    
-    /**
-     * Update-Hinweis anzeigen
-     */
+
+    public function get_remote_version() {
+        // GitHub API für öffentliche Repositories
+        $api_url = "https://api.github.com/repos/{$this->github_repo}/releases/latest";
+        
+        $response = wp_remote_get($api_url, array(
+            'timeout' => 15,
+            'headers' => array(
+                'Accept' => 'application/vnd.github.v3+json',
+                'User-Agent' => 'WordPress/' . get_bloginfo('version') . '; ' . get_bloginfo('url')
+            )
+        ));
+
+        if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) {
+            return false;
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if (!$data || !isset($data['tag_name'])) {
+            return false;
+        }
+
+        return array(
+            'new_version' => ltrim($data['tag_name'], 'v'),
+            'details_url' => $data['html_url'],
+            'download_url' => isset($data['assets'][0]['browser_download_url']) 
+                ? $data['assets'][0]['browser_download_url'] 
+                : $data['zipball_url'],
+            'changelog' => isset($data['body']) ? $data['body'] : 'Siehe GitHub für Details.'
+        );
+    }
+
+    public function plugin_info($false, $action, $response) {
+        if ($action !== 'plugin_information' || $response->slug !== $this->plugin_slug) {
+            return $false;
+        }
+
+        $remote_version = $this->get_remote_version();
+
+        if (!$remote_version) {
+            return $false;
+        }
+
+        $response = new stdClass();
+        $response->name = 'Arbeitsdienste Plugin';
+        $response->slug = $this->plugin_slug;
+        $response->plugin_name = 'Arbeitsdienste Plugin';
+        $response->version = $remote_version['new_version'];
+        $response->author = '<a href="https://narrenzunft-badduerrheim.de/">Leon Buchner</a>';
+        $response->homepage = 'https://narrenzunft-badduerrheim.de/';
+        $response->requires = '5.0';
+        $response->tested = '6.6';
+        $response->requires_php = '7.4';
+        $response->download_link = $remote_version['download_url'];
+        
+        $response->sections = array(
+            'description' => 'Plugin zur Verwaltung von Arbeitsdiensten für Vereine mit E-Mail-Integration und CSV-Export.',
+            'installation' => 'Laden Sie das Plugin herunter und installieren Sie es über das WordPress Admin-Panel.',
+            'changelog' => $remote_version['changelog'],
+            'faq' => 'Bei Fragen besuchen Sie: https://narrenzunft-badduerrheim.de/'
+        );
+
+        $response->banners = array(
+            'low' => '',
+            'high' => ''
+        );
+
+        return $response;
+    }
+
     public function update_notice() {
-        if (!current_user_can('update_plugins')) {
+        $current_screen = get_current_screen();
+        if (!$current_screen || $current_screen->id !== 'plugins') {
             return;
         }
+
+        $remote_version = get_transient('arbeitsdienste_version_check_' . $this->version);
+        if (!$remote_version) {
+            $remote_version = $this->get_remote_version();
+        }
+
+        if ($remote_version && version_compare($this->version, $remote_version['new_version'], '<')) {
+            ?>
+            <div class="notice notice-warning is-dismissible">
+                <p>
+                    <strong>🎯 Arbeitsdienste Plugin Update verfügbar:</strong> 
+                    Version <?php echo esc_html($remote_version['new_version']); ?> ist verfügbar. 
+                    <em>(Aktuell installiert: <?php echo esc_html($this->version); ?>)</em>
+                </p>
+                <p>
+                    <a href="<?php echo esc_url($remote_version['details_url']); ?>" target="_blank" class="button">📖 Release-Details</a>
+                    <a href="<?php echo esc_url(admin_url('admin-ajax.php?action=arbeitsdienste_debug')); ?>" class="button">🔧 Debug-Info</a>
+                    <a href="<?php echo esc_url(admin_url('plugins.php')); ?>" class="button button-primary">🚀 Zu Updates</a>
+                </p>
+            </div>
+            <?php
+        }
+    }
+
+    public function handle_update() {
+        if (!current_user_can('update_plugins')) {
+            wp_die('Keine Berechtigung.');
+        }
+
+        check_admin_referer('arbeitsdienste_update');
+
+        $remote_version = $this->get_remote_version();
+        if (!$remote_version) {
+            wp_die('Update-Informationen konnten nicht abgerufen werden.');
+        }
+
+        // Automatisches Update durchführen
+        $this->perform_update($remote_version);
+    }
+
+    /**
+     * Custom Download-Handler für GitHub ZIP-Downloads
+     */
+    public function download_package($reply, $package, $upgrader, $hook_extra = null) {
+        // Nur für unser Plugin aktiv werden
+        if (isset($hook_extra['plugin']) && $hook_extra['plugin'] === $this->plugin_basename) {
+            return $this->download_github_package($package);
+        }
+        return $reply;
+    }
+
+    /**
+     * Source-Selection für GitHub ZIP-Struktur
+     */
+    public function source_selection($source, $remote_source, $upgrader, $hook_extra = null) {
+        // Nur für unser Plugin aktiv werden
+        if (isset($hook_extra['plugin']) && $hook_extra['plugin'] === $this->plugin_basename) {
+            return $this->fix_github_source($source, $remote_source);
+        }
+        return $source;
+    }
+
+    /**
+     * GitHub Package herunterladen
+     */
+    private function download_github_package($package_url) {
+        // Temporäres Verzeichnis erstellen
+        $temp_file = download_url($package_url);
         
-        $remote_data = $this->get_repository_info();
+        if (is_wp_error($temp_file)) {
+            return $temp_file;
+        }
+
+        return $temp_file;
+    }
+
+    /**
+     * GitHub ZIP-Struktur korrigieren
+     */
+    private function fix_github_source($source, $remote_source) {
+        global $wp_filesystem;
+
+        // GitHub ZIP-Archive haben einen zusätzlichen Ordner mit Repository-Name und Commit-Hash
+        $source_dirs = array_keys($wp_filesystem->dirlist($remote_source));
         
-        if ($remote_data && version_compare($this->version, $remote_data['tag_name'], '<')) {
-            echo '<div class="notice notice-warning is-dismissible">';
-            echo '<p><strong>🎯 Arbeitsdienste Plugin:</strong> ';
-            echo sprintf(
-                'Version %s ist verfügbar! <a href="%s" class="button button-primary">Jetzt aktualisieren</a> | <a href="%s" target="_blank">Release-Details</a>',
-                $remote_data['tag_name'],
-                admin_url('plugins.php'),
-                $remote_data['html_url']
-            );
-            echo ' | <a href="' . admin_url('plugins.php?debug_updater=1') . '">Debug-Info</a>';
-            echo '</p>';
-            echo '</div>';
+        if (count($source_dirs) === 1) {
+            $source_dir = trailingslashit($remote_source) . $source_dirs[0];
+            
+            // Prüfen ob das der GitHub-Ordner ist
+            if ($wp_filesystem->is_dir($source_dir)) {
+                return $source_dir;
+            }
+        }
+
+        return $source;
+    }
+
+    /**
+     * Update durchführen
+     */
+    private function perform_update($remote_version) {
+        require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+        require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
+
+        // Plugin Upgrader initialisieren
+        $upgrader = new Plugin_Upgrader(new Automatic_Upgrader_Skin());
+        
+        // Update durchführen
+        $result = $upgrader->upgrade($this->plugin_basename);
+
+        if (is_wp_error($result)) {
+            wp_die('Update fehlgeschlagen: ' . $result->get_error_message());
+        } elseif ($result === false) {
+            wp_die('Update fehlgeschlagen: Unbekannter Fehler.');
+        } else {
+            // Cache leeren
+            delete_transient('arbeitsdienste_version_check');
+            
+            wp_redirect(admin_url('plugins.php?updated=true'));
+            exit;
         }
     }
 }
@@ -345,11 +379,8 @@ if (is_admin()) {
     $plugin_file = dirname(dirname($plugin_file)) . '/arbeitsdienste-plugin.php';
     
     // Debug: Plugin-Pfad prüfen
-    if (!file_exists($plugin_file)) {
-        error_log('Arbeitsdienste Auto-Updater: Plugin-Datei nicht gefunden: ' . $plugin_file);
-        return;
+    if (file_exists($plugin_file)) {
+        new ArbeitsdiensteAutoUpdater($plugin_file, 'leonbuchnerbd/wp-arbeitsdienste', ARBEITSDIENSTE_PLUGIN_VERSION);
     }
-    
-    new ArbeitsdiensteAutoUpdater($plugin_file, 'leonbuchnerbd', 'wp-arbeitsdienste');
 }
 ?>

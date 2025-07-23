@@ -21,7 +21,10 @@ define('ARBEITSDIENSTE_PLUGIN_URL', plugin_dir_url(__FILE__));
 require_once ARBEITSDIENSTE_PLUGIN_PATH . 'includes/arbeitsdienste-functions.php';
 
 // Auto-Updater laden
-require_once ARBEITSDIENSTE_PLUGIN_PATH . 'includes/auto-updater.php';
+if (is_admin()) {
+    require_once ARBEITSDIENSTE_PLUGIN_PATH . 'includes/auto-updater.php';
+    require_once ARBEITSDIENSTE_PLUGIN_PATH . 'includes/simple-updater.php';
+}
 
 // CPT (Arbeitsdienste) registrieren
 require_once ARBEITSDIENSTE_PLUGIN_PATH . 'includes/arbeitsdienste-cpt.php';
